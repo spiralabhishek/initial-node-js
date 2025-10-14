@@ -82,4 +82,118 @@ export const registerLimiter = rateLimit({
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const sanitizeInput = (req, res)
+export const sanitizeInput = (req, res, next) => {
+  const sanitize = (obj) => {
+    if (typeof obj === 'string') {
+      return obj
+        .replace(/[<>]/g, '') // Remove < and >
+        .trim();
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(sanitize);
+    }
+    if (obj && typeof obj === 'object') {
+      const sanitized = {};
+      for (const [key, value] of Object.entries(obj)) {
+        sanitized[key] = sanitize(value);
+      }
+      return sanitized;
+    }
+    return obj;
+  };
+
+  if (req.body) {
+    req.body = sanitize(req.body);
+  }
+  if (req.query) {
+    req.query = sanitize(req.query);
+  }
+  if (req.params) {
+    req.params = sanitize(req.params);
+  }
+
+  next();
+};
+
+/**
+ * Log suspicious activity
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+export const logSuspiciousActivity = (req, res, next) => {
+  const suspiciousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /'.*or.*'.*=.*/i,
+    /union.*select/i,
+    /drop.*table/i
+  ];
+
+  const checkString = (str) => {
+    return suspiciousPatterns.some(pattern => pattern.test(str));
+  };
+
+  const checkObject = (obj) => {
+    if (typeof obj === 'string') {
+      return checkString(obj);
+    }
+    if (Array.isArray(obj)) {
+      return obj.some(checkObject);
+    }
+    if (obj && typeof obj === 'object') {
+      return Object.values(obj).some(checkObject);
+    }
+    return false;
+  };
+
+  const isSuspicious = 
+    checkObject(req.body) || 
+    checkObject(req.query) || 
+    checkObject(req.params);
+
+  if (isSuspicious) {
+    logger.warn('Suspicious activity detected', {
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+      body: req.body,
+      query: req.query,
+      userAgent: req.get('user-agent')
+    });
+  }
+
+  next();
+};
+
+/**
+ * Prevent parameter pollution
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+export const preventParameterPollution = (req, res, next) => {
+  // Convert array parameters to single values (take first)
+  Object.keys(req.query).forEach(key => {
+    if (Array.isArray(req.query[key])) {
+      logger.warn('Parameter pollution attempt detected', {
+        ip: req.ip,
+        parameter: key,
+        values: req.query[key]
+      });
+      req.query[key] = req.query[key][0];
+    }
+  });
+
+  next();
+};
+
+export default {
+  generalLimiter,
+  authLimiter,
+  registerLimiter,
+  sanitizeInput,
+  logSuspiciousActivity,
+  preventParameterPollution
+};
