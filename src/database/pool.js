@@ -17,7 +17,10 @@ const poolConfig = {
   idleTimeoutMillis: config.database.idleTimeout,
   connectionTimeoutMillis: config.database.connectionTimeout,
   // Security: Use SSL in production
-  ssl: config.isProduction ? { rejectUnauthorized: false } : false
+  ssl: {
+    require: true,
+    rejectUnauthorized: false
+  }
 };
 
 /**
@@ -48,17 +51,17 @@ pool.on('remove', () => {
  */
 export const query = async (text, params = []) => {
   const start = Date.now();
-  
+
   try {
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
-    
+
     logger.debug('Executed query', {
       query: text,
       duration: `${duration}ms`,
       rows: result.rowCount
     });
-    
+
     return result;
   } catch (error) {
     logger.error('Database query error', {
@@ -77,10 +80,10 @@ export const query = async (text, params = []) => {
 export const getClient = async () => {
   try {
     const client = await pool.connect();
-    
+
     const originalRelease = client.release;
     let released = false;
-    
+
     // Override release to prevent double-release
     client.release = () => {
       if (released) {
@@ -90,7 +93,7 @@ export const getClient = async () => {
       released = true;
       originalRelease.apply(client);
     };
-    
+
     return client;
   } catch (error) {
     logger.error('Error getting database client', { error: error.message });
@@ -103,14 +106,14 @@ export const getClient = async () => {
  * @param {Function} callback - Async function to execute within transaction
  * @returns {Promise<any>} Transaction result
  */
-export const transaction = async (callback) => {
+export const transaction = async callback => {
   const client = await getClient();
-  
+
   try {
     await client.query('BEGIN');
     const result = await callback(client);
     await client.query('COMMIT');
-    
+
     logger.debug('Transaction committed successfully');
     return result;
   } catch (error) {
@@ -129,8 +132,8 @@ export const transaction = async (callback) => {
 export const testConnection = async () => {
   try {
     const result = await query('SELECT NOW() as current_time');
-    logger.info('Database connection successful', { 
-      time: result.rows[0].current_time 
+    logger.info('Database connection successful', {
+      time: result.rows[0].current_time
     });
     return true;
   } catch (error) {
