@@ -6,6 +6,7 @@ import talukaRoutes from "./taluka.routes.js";
 import categoryRoutes from "./category.routes.js";
 import postRoutes from "./post.routes.js";
 import newsRoutes from "./news.routes.js";
+import uploadRoutes from "./upload.routes.js";
 
 import { config } from '../config/env.js';
 
@@ -49,6 +50,7 @@ router.use('/districts', districtRoutes);
 router.use("/talukas", talukaRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/posts", postRoutes);
-router.use("/api/news", newsRoutes);
+router.use("/news", newsRoutes);
+router.use("/upload", uploadRoutes);
 
 export default router;
