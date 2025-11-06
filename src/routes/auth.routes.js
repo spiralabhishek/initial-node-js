@@ -7,27 +7,58 @@ import * as validationMiddleware from '../middleware/validation.middleware.js';
 const router = express.Router();
 
 /**
- * @route   POST /api/auth/register
- * @desc    Register a new user
+ * @route   POST /api/auth/register/send-otp
+ * @desc    Send OTP for registration
  * @access  Public
  */
 router.post(
-  '/register',
+  '/register/send-otp',
   securityMiddleware.registerLimiter,
-  validationMiddleware.registerValidation,
-  authController.register
+  validationMiddleware.sendRegisterOTPValidation,
+  authController.sendRegisterOTP
 );
 
 /**
- * @route   POST /api/auth/login
- * @desc    Login user
+ * @route   POST /api/auth/register/verify-otp
+ * @desc    Verify OTP and complete registration
  * @access  Public
  */
 router.post(
-  '/login',
+  '/register/verify-otp',
+  securityMiddleware.registerLimiter,
+  validationMiddleware.verifyRegisterOTPValidation,
+  authController.verifyRegisterOTP
+);
+
+/**
+ * @route   POST /api/auth/login/send-otp
+ * @desc    Send OTP for login
+ * @access  Public
+ */
+router.post(
+  '/login/send-otp',
   securityMiddleware.authLimiter,
-  validationMiddleware.loginValidation,
-  authController.login
+  validationMiddleware.sendLoginOTPValidation,
+  authController.sendLoginOTP
+);
+
+router.post(
+  '/login/resend-otp',
+  securityMiddleware.authLimiter,
+  validationMiddleware.sendLoginOTPValidation,
+  authController.resendOTP
+);
+
+/**
+ * @route   POST /api/auth/login/verify-otp
+ * @desc    Verify OTP and login
+ * @access  Public
+ */
+router.post(
+  '/login/verify-otp',
+  securityMiddleware.authLimiter,
+  validationMiddleware.verifyLoginOTPValidation,
+  authController.verifyLoginOTP
 );
 
 /**

@@ -6,9 +6,8 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
 import * as securityMiddleware from './middleware/security.middleware.js';
-import * as errorMiddleware from './middleware/error.middleware.js';
-import authRoutes from './routes/auth.routes.js';
-import userRoutes from './routes/user.routes.js';
+import * as errorMiddleware from './middleware/error.middleware.js'; 
+import systemRoutes from './routes/index.js';
 
 /**
  * Create Express application
@@ -20,29 +19,33 @@ export const createApp = () => {
   app.set('trust proxy', 1);
 
   // Security middleware - Helmet for HTTP headers
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:']
+        }
       },
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true
-    }
-  }));
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      }
+    })
+  );
 
   // CORS configuration
-  app.use(cors({
-    origin: config.cors.origin,
-    credentials: config.cors.credentials,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
+  app.use(
+    cors({
+      origin: config.cors.origin,
+      credentials: config.cors.credentials,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    })
+  );
 
   // Body parsing middleware
   app.use(express.json({ limit: '10mb' }));
@@ -73,19 +76,8 @@ export const createApp = () => {
     next();
   });
 
-  // Health check endpoint
-  app.get('/health', (req, res) => {
-    res.status(200).json({
-      success: true,
-      message: 'Server is healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
-  });
-
   // API routes
-  app.use(`${config.app.apiPrefix}/auth`, authRoutes);
-  app.use(`${config.app.apiPrefix}/users`, userRoutes);
+  app.use(`${config.app.apiPrefix}`, systemRoutes);
 
   // 404 handler - must be after all routes
   app.use(errorMiddleware.notFoundHandler);

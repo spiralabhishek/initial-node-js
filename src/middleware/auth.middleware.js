@@ -1,197 +1,106 @@
-import * as tokenService from '../services/token.service.js';
-import * as userModel from '../models/user.model.js';
-import { logger } from '../config/logger.js';
+import jwt from 'jsonwebtoken';
+import { models } from '../config/database.js';
+import { config } from '../config/env.js';
+import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-/**
- * Extract token from request header
- * @param {Object} req - Express request object
- * @returns {string|null} Token or null
- */
-const extractToken = (req) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return null;
-  }
-
-  const parts = authHeader.split(' ');
-
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return null;
-  }
-
-  return parts[1];
-};
+const { User } = models;
 
 /**
- * Authenticate user using JWT token
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * Authenticate user via JWT token
  */
 export const authenticate = asyncHandler(async (req, res, next) => {
-  // Extract token from header
-  const token = extractToken(req);
+  // Get token from header
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
-    logger.warn('Authentication failed: No token provided', {
-      ip: req.ip,
-      path: req.path
-    });
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication required'
-    });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new ApiError(401, 'Access token required');
   }
+
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
   try {
     // Verify token
-    const payload = tokenService.verifyAccessToken(token);
+    const decoded = jwt.verify(token, config.jwt.accessSecret);
 
-    // Get user from database
-    const user = await userModel.findUserById(payload.userId);
+    // Find user
+    const user = await User.findOne({
+      where: {
+        id: decoded.userId,
+        deletedAt: null
+      }
+    });
 
     if (!user) {
-      logger.warn('Authentication failed: User not found', {
-        userId: payload.userId,
-        ip: req.ip
-      });
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid authentication token'
-      });
+      throw new ApiError(401, 'User not found');
     }
 
-    if (!user.is_active) {
-      logger.warn('Authentication failed: User inactive', {
-        userId: user.id,
-        ip: req.ip
-      });
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
+    if (!user.isActive) {
+      throw new ApiError(403, 'Account is deactivated');
     }
 
-    // Attach user to request object (without password)
-    const { password, ...userWithoutPassword } = user;
-    req.user = userWithoutPassword;
+    // Attach user info to request
     req.userId = user.id;
+    req.user = user.toJSON();
 
-    logger.debug('User authenticated', { userId: user.id });
     next();
   } catch (error) {
-    logger.warn('Authentication failed', {
-      error: error.message,
-      ip: req.ip,
-      path: req.path
-    });
-
-    return res.status(401).json({
-      success: false,
-      message: error.message === 'Token expired' ? 'Token expired' : 'Invalid authentication token'
-    });
+    if (error.name === 'JsonWebTokenError') {
+      throw new ApiError(401, 'Invalid token');
+    }
+    if (error.name === 'TokenExpiredError') {
+      throw new ApiError(401, 'Token expired');
+    }
+    throw error;
   }
 });
 
 /**
- * Optional authentication - doesn't fail if no token
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * Check if user is verified
  */
-export const optionalAuthenticate = asyncHandler(async (req, res, next) => {
-  const token = extractToken(req);
+export const requireVerified = asyncHandler(async (req, res, next) => {
+  if (!req.user.isVerified) {
+    throw new ApiError(403, 'Email verification required');
+  }
+  next();
+});
 
-  if (!token) {
+/**
+ * Optional authentication (doesn't throw error if no token)
+ */
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();
   }
 
-  try {
-    const payload = tokenService.verifyAccessToken(token);
-    const user = await userModel.findUserById(payload.userId);
+  const token = authHeader.substring(7);
 
-    if (user && user.is_active) {
-      const { password, ...userWithoutPassword } = user;
-      req.user = userWithoutPassword;
+  try {
+    const decoded = jwt.verify(token, config.jwt.accessSecret);
+
+    const user = await User.findOne({
+      where: {
+        id: decoded.userId,
+        deletedAt: null,
+        isActive: true
+      }
+    });
+
+    if (user) {
       req.userId = user.id;
+      req.user = user.toJSON();
     }
   } catch (error) {
-    // Silent fail for optional auth
-    logger.debug('Optional auth failed', { error: error.message });
+    // Silently fail for optional auth
   }
 
   next();
 });
 
-/**
- * Check if user has specific role (for future role-based access)
- * @param {...string} roles - Allowed roles
- */
-export const authorize = (...roles) => {
-  return asyncHandler(async (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      logger.warn('Authorization failed', {
-        userId: req.user.id,
-        requiredRoles: roles,
-        userRole: req.user.role
-      });
-
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
-    }
-
-    next();
-  });
-};
-
-/**
- * Verify refresh token from cookie or body
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-export const verifyRefreshToken = asyncHandler(async (req, res, next) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-
-  if (!refreshToken) {
-    return res.status(401).json({
-      success: false,
-      message: 'Refresh token required'
-    });
-  }
-
-  try {
-    const payload = tokenService.verifyRefreshToken(refreshToken);
-    req.refreshToken = refreshToken;
-    req.userId = payload.userId;
-    next();
-  } catch (error) {
-    logger.warn('Refresh token verification failed', {
-      error: error.message,
-      ip: req.ip
-    });
-
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired refresh token'
-    });
-  }
-});
-
 export default {
   authenticate,
-  optionalAuthenticate,
-  authorize,
-  verifyRefreshToken
+  requireVerified,
+  optionalAuth
 };

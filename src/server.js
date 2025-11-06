@@ -1,7 +1,8 @@
+// src\server.js
 import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
-import { testConnection, closePool } from './database/pool.js';
+import { connectDatabase, closeDatabase } from './config/database.js';
 
 /**
  * Start the server
@@ -10,12 +11,8 @@ const startServer = async () => {
   try {
     // Test database connection
     logger.info('Testing database connection...');
-    const dbConnected = await testConnection();
-    
-    if (!dbConnected) {
-      throw new Error('Failed to connect to database');
-    }
-
+    await connectDatabase();
+ 
     // Create Express app
     const app = createApp();
 
