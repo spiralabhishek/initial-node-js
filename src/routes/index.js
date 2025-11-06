@@ -1,6 +1,9 @@
 import express from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
+import districtRoutes from "./district.routes.js";
+import talukaRoutes from "./taluka.routes.js";
+
 import { config } from '../config/env.js';
 
 const router = express.Router();
@@ -39,5 +42,7 @@ router.get('/info', (req, res) => {
  */
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/districts', districtRoutes);
+router.use("/talukas", talukaRoutes);
 
 export default router;
