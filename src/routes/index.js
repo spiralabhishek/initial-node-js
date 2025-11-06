@@ -3,6 +3,9 @@ import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import districtRoutes from "./district.routes.js";
 import talukaRoutes from "./taluka.routes.js";
+import categoryRoutes from "./category.routes.js";
+import postRoutes from "./post.routes.js";
+import newsRoutes from "./news.routes.js";
 
 import { config } from '../config/env.js';
 
@@ -44,5 +47,8 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/districts', districtRoutes);
 router.use("/talukas", talukaRoutes);
+router.use("/categories", categoryRoutes);
+router.use("/posts", postRoutes);
+router.use("/api/news", newsRoutes);
 
 export default router;
