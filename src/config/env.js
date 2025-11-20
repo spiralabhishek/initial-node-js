@@ -21,7 +21,8 @@ const validateEnv = () => {
     'DB_USER',
     'DB_PASSWORD',
     'JWT_ACCESS_SECRET',
-    'JWT_REFRESH_SECRET'
+    'JWT_REFRESH_SECRET',
+    'JWT_ADMIN_ACCESS_SECRET',
   ];
 
   const missing = required.filter(key => !process.env[key]);
@@ -65,7 +66,8 @@ export const config = {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
-    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d'
+    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
+    adminAccessSecret: process.env.JWT_ADMIN_ACCESS_SECRET
   },
 
   bcrypt: {
@@ -73,7 +75,7 @@ export const config = {
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080'],
     credentials: process.env.CORS_CREDENTIALS === 'true'
   },
 

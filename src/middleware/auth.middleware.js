@@ -1,3 +1,4 @@
+// src\middleware\auth.middleware.js
 import jwt from 'jsonwebtoken';
 import { models } from '../config/database.js';
 import { config } from '../config/env.js';

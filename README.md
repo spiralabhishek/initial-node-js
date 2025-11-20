@@ -319,3 +319,89 @@ Your Name
 ## 🙏 Acknowledgments
 
 Built with modern best practices and security standards for Node.js applications.
+
+POST   http://localhost:3000/api/admin/login 
+POST   http://localhost:3000/api/admin/refresh-token
+
+POST   http://localhost:3000/api/admin/register         (superadmin only)
+GET    http://localhost:3000/api/admin/all              (superadmin only)
+
+GET    http://localhost:3000/api/admin/profile          (requires admin login)
+POST   http://localhost:3000/api/admin/logout           (requires admin login)
+PUT    http://localhost:3000/api/admin/deactivate       (requires admin login)
+------------------------------------------
+POST   http://localhost:3000/api/auth/register/send-otp
+POST   http://localhost:3000/api/auth/register/verify-otp
+
+POST   http://localhost:3000/api/auth/login/send-otp
+POST   http://localhost:3000/api/auth/login/resend-otp
+POST   http://localhost:3000/api/auth/login/verify-otp
+
+POST   http://localhost:3000/api/auth/refresh
+
+POST   http://localhost:3000/api/auth/logout             (requires user login)
+POST   http://localhost:3000/api/auth/logout-all         (requires user login)
+
+GET    http://localhost:3000/api/auth/me                 (requires user login)
+-------------------------------------------------
+GET    http://localhost:3000/api/users/profile                     (requires login)
+PUT    http://localhost:3000/api/users/profile                     (requires login)
+
+POST   http://localhost:3000/api/users/phone/send-otp              (requires login)
+POST   http://localhost:3000/api/users/phone/verify-otp            (requires login)
+
+PUT    http://localhost:3000/api/users/deactivate                  (requires login)
+
+PUT    http://localhost:3000/api/users/reactivate                  (public)
+
+POST   http://localhost:3000/api/users/account/delete-otp          (requires login)
+DELETE http://localhost:3000/api/users/account                     (requires login)
+
+GET    http://localhost:3000/api/users/:id                         (requires login)
+-------------------------------------------------
+GET     http://localhost:3000/api/districts                         (requires login)
+GET     http://localhost:3000/api/districts/:id                     (requires login)
+
+POST    http://localhost:3000/api/districts                         (requires login)
+
+PUT     http://localhost:3000/api/districts/:id                     (requires login)
+
+DELETE  http://localhost:3000/api/districts/:id                     (requires login)
+
+GET     http://localhost:3000/api/districts/:id/talukas             (requires login)
+-------------------------------------------------
+GET     http://localhost:3000/api/talukas                          (requires login)
+GET     http://localhost:3000/api/talukas/:id                      (requires login)
+
+POST    http://localhost:3000/api/talukas                          (requires login)
+
+PUT     http://localhost:3000/api/talukas/:id                      (requires login)
+
+DELETE  http://localhost:3000/api/talukas/:id                      (requires login)
+-------------------------------------------------
+GET     http://localhost:3000/api/categories                          (requires login)
+GET     http://localhost:3000/api/categories/:id                      (requires login)
+
+POST    http://localhost:3000/api/categories                          (requires login)
+
+PUT     http://localhost:3000/api/categories/:id                      (requires login)
+
+DELETE  http://localhost:3000/api/categories/:id                      (requires login)
+--------------------------------------------------
+GET     http://localhost:3000/api/posts                             
+GET     http://localhost:3000/api/posts/:id                         
+POST    http://localhost:3000/api/posts                              (requires login)
+
+PUT     http://localhost:3000/api/posts/:id                          (requires login)
+
+DELETE  http://localhost:3000/api/posts/:id                          (requires login)
+--------------------------------------------------
+GET     http://localhost:3000/api/news                              
+GET     http://localhost:3000/api/news/:id                          
+POST    http://localhost:3000/api/news                              (requires login)
+
+PUT     http://localhost:3000/api/news/:id                          (requires login)
+
+DELETE  http://localhost:3000/api/news/:id                          (requires login)
+--------------------------------------------------
+POST    http://localhost:3000/api/upload                            (requires login)

@@ -7,6 +7,7 @@ import categoryRoutes from "./category.routes.js";
 import postRoutes from "./post.routes.js";
 import newsRoutes from "./news.routes.js";
 import uploadRoutes from "./upload.routes.js";
+import adminRoutes from "./admin.routes.js";
 
 import { config } from '../config/env.js';
 
@@ -45,6 +46,7 @@ router.get('/info', (req, res) => {
  * Mount route modules
  */
 router.use('/auth', authRoutes);
+router.use('/admin', adminRoutes);
 router.use('/users', userRoutes);
 router.use('/districts', districtRoutes);
 router.use("/talukas", talukaRoutes);
