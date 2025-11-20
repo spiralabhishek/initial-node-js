@@ -15,10 +15,13 @@ export const createPost = asyncHandler(async (req, res) => {
   const { categoryId, districtId, talukaId, title, description, media, postedBy } = req.body;
   const author = req.userId || postedBy;
 
-  if (!categoryId || !districtId || !talukaId || !title || !description || !media || !author) {
+  if (!categoryId || !districtId || !talukaId || !title || !description || !author) {
     throw new ApiError(400, 'All required fields must be provided');
   }
 
+  if (!media || (Array.isArray(media) && media.length === 0)) {
+    throw new ApiError(400, 'At least one media file is required');
+  }
   // Validate foreign keys
   const [category, district, taluka] = await Promise.all([
     Category.findByPk(categoryId),
@@ -30,6 +33,7 @@ export const createPost = asyncHandler(async (req, res) => {
   if (!district) throw new ApiError(404, 'District not found');
   if (!taluka) throw new ApiError(404, 'Taluka not found');
 
+  
   const newPost = await Post.create({
     categoryId,
     districtId,

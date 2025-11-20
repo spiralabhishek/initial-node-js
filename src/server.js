@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, closeDatabase } from './config/database.js';
+import { query, closePool } from '../src/database/pool.js';
 
 /**
  * Start the server
