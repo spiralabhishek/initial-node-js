@@ -3,12 +3,13 @@ import * as categoryController from "../controllers/category.controller.js";
 import * as authMiddleware from "../middleware/auth.middleware.js";
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middleware/validation.middleware.js";
+import { universalAuth } from "../middleware/universalAuth.middleware.js";
+import { adminAuthenticate } from "../middleware/adminAuth.middleware.js";
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(authMiddleware.authenticate);
-
+router.use(universalAuth);
 /**
  * @route   GET /api/categories
  * @desc    Get all categories
@@ -26,6 +27,8 @@ router.get(
   [param("id").isUUID().withMessage("Invalid category ID"), handleValidationErrors],
   categoryController.getCategoryById
 );
+
+router.use(adminAuthenticate);
 
 /**
  * @route   POST /api/categories

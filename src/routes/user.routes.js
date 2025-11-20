@@ -3,8 +3,11 @@ import * as userController from '../controllers/user.controller.js';
 import * as authMiddleware from '../middleware/auth.middleware.js';
 import { body, param } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation.middleware.js';
+import { adminAuthenticate } from '../middleware/adminAuth.middleware.js';
 
 const router = express.Router();
+
+router.get('/all', adminAuthenticate, userController.getAllUsers);
 
 // All routes require authentication
 router.use(authMiddleware.authenticate);
@@ -34,12 +37,7 @@ router.put(
       .trim()
       .isLength({ min: 2, max: 50 })
       .withMessage('Last name must be between 2 and 50 characters'),
-    body('email')
-      .optional()
-      .trim()
-      .isEmail()
-      .withMessage('Invalid email address')
-      .normalizeEmail(),
+    body('email').optional().trim().isEmail().withMessage('Invalid email address').normalizeEmail(),
     handleValidationErrors
   ],
   userController.updateProfile
@@ -149,12 +147,7 @@ router.delete(
  */
 router.get(
   '/:id',
-  [
-    param('id')
-      .isUUID()
-      .withMessage('Invalid user ID'),
-    handleValidationErrors
-  ],
+  [param('id').isUUID().withMessage('Invalid user ID'), handleValidationErrors],
   userController.getUserById
 );
 

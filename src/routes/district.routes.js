@@ -1,13 +1,14 @@
 import express from "express";
 import * as districtController from "../controllers/district.controller.js";
-import * as authMiddleware from "../middleware/auth.middleware.js";
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middleware/validation.middleware.js";
+import { universalAuth } from "../middleware/universalAuth.middleware.js";
+import { adminAuthenticate } from "../middleware/adminAuth.middleware.js";
 
 const router = express.Router();
 
 // Protect all routes
-router.use(authMiddleware.authenticate);
+router.use(universalAuth);
 
 /**
  * @route   GET /api/districts
@@ -27,6 +28,7 @@ router.get(
   districtController.getDistrictById
 );
 
+router.use(adminAuthenticate);
 /**
  * @route   POST /api/districts
  * @desc    Create a new district

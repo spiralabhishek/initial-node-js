@@ -63,7 +63,7 @@ export const createApp = () => {
   app.use(securityMiddleware.preventParameterPollution);
 
   // Rate limiting
-  app.use(securityMiddleware.generalLimiter);
+  // app.use(securityMiddleware.generalLimiter);
 
   // Request logging
   app.use((req, res, next) => {

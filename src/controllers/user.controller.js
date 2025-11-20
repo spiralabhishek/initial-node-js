@@ -50,7 +50,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const updates = {};
   if (firstName !== undefined) updates.firstName = firstName;
   if (lastName !== undefined) updates.lastName = lastName;
-  
+
   // Check if email is being changed and if it already exists
   if (email && email.toLowerCase() !== user.email) {
     const emailExists = await User.findOne({
@@ -76,7 +76,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   // Update user
   await user.update(updates);
 
-  logger.info('User profile updated', { 
+  logger.info('User profile updated', {
     userId: req.userId,
     updates: Object.keys(updates)
   });
@@ -128,7 +128,7 @@ export const sendPhoneUpdateOTP = asyncHandler(async (req, res) => {
   if (user.otpExpiresAt) {
     const lastOtpTime = new Date(user.updatedAt);
     const timeSinceLastOtp = (Date.now() - lastOtpTime.getTime()) / 1000;
-    
+
     if (timeSinceLastOtp < 60) {
       const waitTime = Math.ceil(60 - timeSinceLastOtp);
       throw new ApiError(429, `Please wait ${waitTime} seconds before requesting a new OTP`);
@@ -153,14 +153,18 @@ export const sendPhoneUpdateOTP = asyncHandler(async (req, res) => {
   // Send OTP via SMS (implement your SMS service)
   // await sendSMSOTP(newPhoneNumber, otp);
 
-  logger.info('Phone update OTP sent', { 
+  logger.info('Phone update OTP sent', {
     userId: req.userId,
-    newPhoneNumber 
+    newPhoneNumber
   });
 
-  return successResponse(res, {
-    expiresIn: 300
-  }, 'OTP sent to new phone number');
+  return successResponse(
+    res,
+    {
+      expiresIn: 300
+    },
+    'OTP sent to new phone number'
+  );
 });
 
 /**
@@ -233,9 +237,9 @@ export const verifyPhoneUpdateOTP = asyncHandler(async (req, res) => {
     tempData: null
   });
 
-  logger.info('Phone number updated successfully', { 
+  logger.info('Phone number updated successfully', {
     userId: req.userId,
-    newPhoneNumber 
+    newPhoneNumber
   });
 
   return successResponse(res, user.toJSON(), 'Phone number updated successfully');
@@ -262,7 +266,7 @@ export const deactivateAccount = asyncHandler(async (req, res) => {
   }
 
   // Deactivate account
-  await user.update({ 
+  await user.update({
     isActive: false,
     refreshTokenRevokedAt: new Date()
   });
@@ -322,9 +326,9 @@ export const reactivateAccount = asyncHandler(async (req, res) => {
   }
 
   // Reactivate account
-  await user.update({ 
+  await user.update({
     isActive: true,
-    otpIsUsed: true 
+    otpIsUsed: true
   });
 
   logger.info('User account reactivated', { userId: user.id });
@@ -379,7 +383,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
   }
 
   // Soft delete user
-  await user.update({ 
+  await user.update({
     deletedAt: new Date(),
     isActive: false,
     refreshTokenRevokedAt: new Date()
@@ -410,7 +414,7 @@ export const sendDeleteAccountOTP = asyncHandler(async (req, res) => {
   if (user.otpExpiresAt) {
     const lastOtpTime = new Date(user.updatedAt);
     const timeSinceLastOtp = (Date.now() - lastOtpTime.getTime()) / 1000;
-    
+
     if (timeSinceLastOtp < 60) {
       const waitTime = Math.ceil(60 - timeSinceLastOtp);
       throw new ApiError(429, `Please wait ${waitTime} seconds before requesting a new OTP`);
@@ -433,9 +437,13 @@ export const sendDeleteAccountOTP = asyncHandler(async (req, res) => {
 
   logger.info('Account deletion OTP sent', { userId: req.userId });
 
-  return successResponse(res, {
-    expiresIn: 300
-  }, 'OTP sent to your phone number');
+  return successResponse(
+    res,
+    {
+      expiresIn: 300
+    },
+    'OTP sent to your phone number'
+  );
 });
 
 /**
@@ -459,6 +467,26 @@ export const getUserById = asyncHandler(async (req, res) => {
   return successResponse(res, user.toJSON(), 'User retrieved successfully');
 });
 
+/**
+ * Get all users (Admin only)
+ * GET /api/users
+ */
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const where = {
+    deletedAt: null
+  };
+
+  const users = await User.findAll({
+    where,
+    order: [['createdAt', 'DESC']],
+    attributes: {
+      exclude: ['password', 'refreshToken', 'currentOtp'] // hide sensitive fields
+    }
+  });
+
+  return successResponse(res, users, 'Users retrieved successfully');
+});
+
 export default {
   getProfile,
   updateProfile,
@@ -468,5 +496,6 @@ export default {
   reactivateAccount,
   sendDeleteAccountOTP,
   deleteAccount,
-  getUserById
+  getUserById,
+  getAllUsers
 };

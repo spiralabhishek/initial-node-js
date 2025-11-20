@@ -1,8 +1,8 @@
-import { models } from "../config/database.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { successResponse } from "../utils/apiResponse.js";
-import { ApiError } from "../utils/apiError.js";
-import { logger } from "../config/logger.js";
+import { models } from '../config/database.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { successResponse } from '../utils/apiResponse.js';
+import { ApiError } from '../utils/apiError.js';
+import { logger } from '../config/logger.js';
 
 const { Post, Category, District, Taluka, User } = models;
 
@@ -12,23 +12,23 @@ const { Post, Category, District, Taluka, User } = models;
  * @access  Private
  */
 export const createPost = asyncHandler(async (req, res) => {
-  const { categoryId, districtId, talukaId, title, description, media } = req.body;
-  const postedBy = req.userId;
+  const { categoryId, districtId, talukaId, title, description, media, postedBy } = req.body;
+  const author = req.userId || postedBy;
 
-  if (!categoryId || !districtId || !talukaId || !title || !description || !media) {
-    throw new ApiError(400, "All required fields must be provided");
+  if (!categoryId || !districtId || !talukaId || !title || !description || !media || !author) {
+    throw new ApiError(400, 'All required fields must be provided');
   }
 
   // Validate foreign keys
   const [category, district, taluka] = await Promise.all([
     Category.findByPk(categoryId),
     District.findByPk(districtId),
-    Taluka.findByPk(talukaId),
+    Taluka.findByPk(talukaId)
   ]);
 
-  if (!category) throw new ApiError(404, "Category not found");
-  if (!district) throw new ApiError(404, "District not found");
-  if (!taluka) throw new ApiError(404, "Taluka not found");
+  if (!category) throw new ApiError(404, 'Category not found');
+  if (!district) throw new ApiError(404, 'District not found');
+  if (!taluka) throw new ApiError(404, 'Taluka not found');
 
   const newPost = await Post.create({
     categoryId,
@@ -37,12 +37,12 @@ export const createPost = asyncHandler(async (req, res) => {
     title,
     description,
     media: Array.isArray(media) ? media : [media],
-    postedBy,
+    postedBy: author
   });
 
-  logger.info("New post created", { postId: newPost.id, userId: postedBy });
+  logger.info('New post created', { postId: newPost.id, userId: author });
 
-  return successResponse(res, newPost, "Post created successfully");
+  return successResponse(res, newPost, 'Post created successfully');
 });
 
 /**
@@ -61,15 +61,15 @@ export const getAllPosts = asyncHandler(async (req, res) => {
   const posts = await Post.findAll({
     where: filters,
     include: [
-      { model: Category, as: "category", attributes: ["id", "name"] },
-      { model: District, as: "district", attributes: ["id", "district"] },
-      { model: Taluka, as: "taluka", attributes: ["id", "taluka"] },
-      { model: User, as: "author", attributes: ["id", "firstName", "lastName"] },
+      { model: Category, as: 'category', attributes: ['id', 'name'] },
+      { model: District, as: 'district', attributes: ['id', 'district'] },
+      { model: Taluka, as: 'taluka', attributes: ['id', 'taluka'] },
+      { model: User, as: 'author', attributes: ['id', 'firstName', 'lastName'] }
     ],
-    order: [["createdAt", "DESC"]],
+    order: [['createdAt', 'DESC']]
   });
 
-  return successResponse(res, posts, "Posts retrieved successfully");
+  return successResponse(res, posts, 'Posts retrieved successfully');
 });
 
 /**
@@ -83,16 +83,16 @@ export const getPostById = asyncHandler(async (req, res) => {
   const post = await Post.findOne({
     where: { id, isActive: true },
     include: [
-      { model: Category, as: "category", attributes: ["id", "name"] },
-      { model: District, as: "district", attributes: ["id", "district"] },
-      { model: Taluka, as: "taluka", attributes: ["id", "taluka"] },
-      { model: User, as: "author", attributes: ["id", "firstName", "lastName"] },
-    ],
+      { model: Category, as: 'category', attributes: ['id', 'name'] },
+      { model: District, as: 'district', attributes: ['id', 'district'] },
+      { model: Taluka, as: 'taluka', attributes: ['id', 'taluka'] },
+      { model: User, as: 'author', attributes: ['id', 'firstName', 'lastName'] }
+    ]
   });
 
-  if (!post) throw new ApiError(404, "Post not found");
+  if (!post) throw new ApiError(404, 'Post not found');
 
-  return successResponse(res, post, "Post retrieved successfully");
+  return successResponse(res, post, 'Post retrieved successfully');
 });
 
 /**
@@ -105,7 +105,7 @@ export const updatePost = asyncHandler(async (req, res) => {
   const { title, description, media, categoryId, districtId, talukaId, isActive } = req.body;
 
   const post = await Post.findByPk(id);
-  if (!post) throw new ApiError(404, "Post not found");
+  if (!post) throw new ApiError(404, 'Post not found');
 
   await post.update({
     title,
@@ -114,12 +114,12 @@ export const updatePost = asyncHandler(async (req, res) => {
     categoryId,
     districtId,
     talukaId,
-    isActive,
+    isActive
   });
 
-  logger.info("Post updated", { id });
+  logger.info('Post updated', { id });
 
-  return successResponse(res, post, "Post updated successfully");
+  return successResponse(res, post, 'Post updated successfully');
 });
 
 /**
@@ -131,13 +131,13 @@ export const deletePost = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const post = await Post.findByPk(id);
-  if (!post) throw new ApiError(404, "Post not found");
+  if (!post) throw new ApiError(404, 'Post not found');
 
   await post.update({ isActive: false });
 
-  logger.info("Post deleted", { id });
+  logger.info('Post deleted', { id });
 
-  return successResponse(res, null, "Post deleted successfully");
+  return successResponse(res, null, 'Post deleted successfully');
 });
 
 export default {
@@ -145,5 +145,5 @@ export default {
   getAllPosts,
   getPostById,
   updatePost,
-  deletePost,
+  deletePost
 };

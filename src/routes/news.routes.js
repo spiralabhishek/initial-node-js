@@ -3,8 +3,13 @@ import * as newsController from "../controllers/news.controller.js";
 import * as authMiddleware from "../middleware/auth.middleware.js";
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middleware/validation.middleware.js";
+import { universalAuth } from "../middleware/universalAuth.middleware.js";
+import { adminAuthenticate } from "../middleware/adminAuth.middleware.js";
 
 const router = express.Router();
+
+// Protect the rest
+router.use(universalAuth);
 
 /**
  * @route   GET /api/news
@@ -24,8 +29,7 @@ router.get(
   newsController.getNewsById
 );
 
-// Protect the rest
-router.use(authMiddleware.authenticate);
+router.use(adminAuthenticate);
 
 /**
  * @route   POST /api/news
