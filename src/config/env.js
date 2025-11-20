@@ -67,7 +67,8 @@ export const config = {
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
-    adminAccessSecret: process.env.JWT_ADMIN_ACCESS_SECRET
+    adminAccessSecret: process.env.JWT_ADMIN_ACCESS_SECRET,
+    adminRefreshSecret: process.env.JWT_ADMIN_REFRESH_SECRET
   },
 
   bcrypt: {
