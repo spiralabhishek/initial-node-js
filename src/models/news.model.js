@@ -14,7 +14,7 @@ export const defineNewsModel = (sequelize) => {
         allowNull: false,
       },
       media: {
-        type: DataTypes.STRING, // URL or file path for the news image/video
+        type: DataTypes.JSON, // URL or file path for the news image/video
         allowNull: false,
       },
       description: {

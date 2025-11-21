@@ -1,4 +1,3 @@
-// controllers/news.controller.js
 import { models } from '../config/database.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { successResponse } from '../utils/apiResponse.js';
@@ -21,31 +20,25 @@ export const createNews = asyncHandler(async (req, res) => {
   }
 
   let movedMedia = null;
-  let mediaUrl = null;
 
   try {
-    // Check if media is an object with public_id or just a URL string
-    const publicId = typeof media === 'object' ? media.public_id : null;
-    
     // Move media from temp to news folder if it's in temp
-    if (publicId && publicId.includes('uploads/temp')) {
-      movedMedia = await moveToFolder(publicId, 'news');
-      mediaUrl = movedMedia.url; // Extract only the URL
+    if (media.public_id && media.public_id.includes('uploads/temp')) {
+      movedMedia = await moveToFolder(media.public_id, 'news');
     } else {
-      // If it's already a URL string or not in temp
-      mediaUrl = typeof media === 'object' ? media.url : media;
+      movedMedia = media;
     }
 
     const newNews = await News.create({
       title,
       description,
-      media: mediaUrl, // Store only URL as string
+      media: movedMedia,
       isActive: isActive !== undefined ? isActive : true
     });
 
     logger.info('News created with media', {
       newsId: newNews.id,
-      mediaUrl: mediaUrl
+      mediaUrl: movedMedia.url
     });
 
     return successResponse(res, newNews, 'News created successfully');
@@ -101,70 +94,33 @@ export const updateNews = asyncHandler(async (req, res) => {
   const { title, description, media, isActive } = req.body;
 
   const news = await News.findByPk(id);
+  if (!news) throw new ApiError(404, 'News not found');
 
-  if (!news) {
-    throw new ApiError(404, 'News not found');
-  }
-
-  const oldMediaUrl = news.media;
-  let movedMedia = null;
-  let mediaUrl = null;
+  const oldMedia = news.media;
+  let movedMedia = media || oldMedia;
 
   try {
-    // Check if new media is provided
-    if (media) {
-      const publicId = typeof media === 'object' ? media.public_id : null;
-      const newMediaUrl = typeof media === 'object' ? media.url : media;
-
-      // Only process if media has changed
-      if (newMediaUrl !== oldMediaUrl) {
-        // Move new media from temp to news folder
-        if (publicId && publicId.includes('uploads/temp')) {
-          movedMedia = await moveToFolder(publicId, 'news');
-          mediaUrl = movedMedia.url;
-        } else {
-          mediaUrl = newMediaUrl;
-        }
-
-        // Extract public_id from old URL to delete
-        if (oldMediaUrl && oldMediaUrl.includes('cloudinary.com')) {
-          try {
-            // Extract public_id from Cloudinary URL
-            const urlParts = oldMediaUrl.split('/upload/');
-            if (urlParts.length > 1) {
-              const pathParts = urlParts[1].split('/');
-              // Remove version (v1234567890) if present
-              const startIndex = pathParts[0].startsWith('v') ? 1 : 0;
-              const oldPublicId = pathParts.slice(startIndex).join('/').split('.')[0];
-              await deleteFromCloudinary(oldPublicId);
-            }
-          } catch (deleteError) {
-            logger.warn('Failed to delete old media', { error: deleteError.message });
-          }
-        }
-      } else {
-        mediaUrl = oldMediaUrl; // Keep existing media
+    if (media && media.public_id !== oldMedia?.public_id) {
+      if (media.public_id.includes('uploads/temp')) {
+        movedMedia = await moveToFolder(media.public_id, 'news');
       }
-    } else {
-      mediaUrl = oldMediaUrl; // Keep existing media if not provided
+
+      if (oldMedia?.public_id) {
+        await deleteFromCloudinary(oldMedia.public_id);
+      }
     }
 
     await news.update({
-      title: title || news.title,
-      description: description || news.description,
-      media: mediaUrl, // Store only URL as string
-      isActive: isActive !== undefined ? isActive : news.isActive
+      title: title ?? news.title,
+      description: description ?? news.description,
+      media: movedMedia,
+      isActive: isActive ?? news.isActive
     });
-
-    logger.info('News updated', { newsId: id });
 
     return successResponse(res, news, 'News updated successfully');
   } catch (error) {
-    // Rollback: delete new media if update fails
-    if (movedMedia && movedMedia.public_id) {
-      await deleteFromCloudinary(movedMedia.public_id).catch(err =>
-        logger.error('Failed to cleanup new media after update error', err)
-      );
+    if (movedMedia && movedMedia.public_id !== oldMedia?.public_id) {
+      await deleteFromCloudinary(movedMedia.public_id).catch(() => {});
     }
     throw error;
   }
@@ -185,23 +141,8 @@ export const deleteNews = asyncHandler(async (req, res) => {
   }
 
   // Delete media from Cloudinary
-  if (news.media && news.media.includes('cloudinary.com')) {
-    try {
-      // Extract public_id from Cloudinary URL
-      const urlParts = news.media.split('/upload/');
-      if (urlParts.length > 1) {
-        const pathParts = urlParts[1].split('/');
-        // Remove version (v1234567890) if present
-        const startIndex = pathParts[0].startsWith('v') ? 1 : 0;
-        const publicId = pathParts.slice(startIndex).join('/').split('.')[0];
-        await deleteFromCloudinary(publicId);
-      }
-    } catch (deleteError) {
-      logger.warn('Failed to delete media from Cloudinary', { 
-        error: deleteError.message,
-        newsId: id 
-      });
-    }
+  if (news.media && news.media.public_id) {
+    await deleteFromCloudinary(news.media.public_id);
   }
 
   await news.destroy();
